@@ -14,6 +14,7 @@
         packages = with pkgs; [
           nodejs
           corepack
+          wrangler
         ];
       };
     };
