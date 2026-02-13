@@ -5,19 +5,17 @@
 	"compatibility_date": "2026-02-12",
 	"assets": {
 		"binding": "ASSETS",
-		"directory": "./public",
+		"directory": "./public"
 	},
 	"observability": {
-		"enabled": true,
+		"enabled": true
 	},
-	"compatibility_flags": [
-		"nodejs_compat"
-	],
+	"compatibility_flags": ["nodejs_compat"],
 	"workers_dev": false,
 	"routes": [
 		{
 			"pattern": "avena.henriquesf.me",
-			"custom_domain": true,
-		},
-	],
+			"custom_domain": true
+		}
+	]
 }
