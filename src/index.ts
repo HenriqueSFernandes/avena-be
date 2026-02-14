@@ -31,6 +31,7 @@ const app = new Elysia()
 				weight: 81, // kg
 				age: 21,
 				activityLevel: 1.55, // Moderately active
+				dietaryRestrictions: [], // e.g., ['vegan', 'gluten-free', 'no-pork', 'no-alcohol']
 			};
 
 			// Hardcoded inventory (from notebook)
@@ -53,7 +54,8 @@ const app = new Elysia()
 			const mealPlan = await planDailyMeals(
 				totalCalories,
 				calorieDistribution,
-				inventory
+				inventory,
+				userProfile.dietaryRestrictions
 			);
 
 			return {

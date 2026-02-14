@@ -22,6 +22,7 @@ interface UserProfile {
   weight: number; // kg
   age: number;
   activityLevel: number;
+  dietaryRestrictions?: string[]; // e.g., ['vegan', 'gluten-free', 'no-pork']
 }
 
 interface Inventory {
