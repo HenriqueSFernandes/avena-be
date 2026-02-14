@@ -13,7 +13,9 @@
 		"check:fix": "biome check --write .",
 		"ci": "biome check .",
 		"migrate": "drizzle-kit generate && wrangler d1 migrations apply avena_db --local",
-		"migrate:prod": "drizzle-kit generate && wrangler d1 migrations apply avena_db --remote"
+		"migrate:prod": "drizzle-kit generate && wrangler d1 migrations apply avena_db --remote",
+		"seed": "wrangler d1 execute avena_db --file ./src/db/seeder/recipes.sql --local",
+		"seed:prod": "wrangler d1 execute avena_db --file ./src/db/seeder/recipes.sql --remote"
 	},
 	"dependencies": {
 		"better-auth": "^1.4.18",
