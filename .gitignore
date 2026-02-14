@@ -17,6 +17,8 @@ drizzle/
 node_modules/
 .wrangler
 
+.idea/
+
 # env
 .env
 .env.production
