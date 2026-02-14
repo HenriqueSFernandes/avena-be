@@ -23,6 +23,14 @@ export const mealEnum = pgEnum("meal", [
 	"dinner",
 	"midnight snack",
 ]);
+export const dietaryRestrictionEnum = pgEnum("dietary_restriction", [
+	"vegan",
+	"vegetarian",
+	"pescatarian",
+	"gluten-free",
+	"no-pork",
+	"no-alcohol",
+]);
 
 export const user = pgTable("user", {
 	id: text("id").primaryKey(),
@@ -43,6 +51,7 @@ export const user = pgTable("user", {
 	healthGoal: healthGoalEnum("health_goal"),
 	tmb: real("tmb"),
 	meals: mealEnum("meals").array(),
+	dietaryRestrictions: dietaryRestrictionEnum("dietary_restrictions").array(),
 });
 
 export const session = pgTable(

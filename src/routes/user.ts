@@ -35,6 +35,15 @@ const mealEnum = t.Union([
 	t.Literal("midnight snack"),
 ]);
 
+const dietaryRestrictionEnum = t.Union([
+	t.Literal("vegan"),
+	t.Literal("vegetarian"),
+	t.Literal("pescatarian"),
+	t.Literal("gluten-free"),
+	t.Literal("no-pork"),
+	t.Literal("no-alcohol"),
+]);
+
 const updateProfileSchema = t.Object({
 	gender: t.Optional(genderEnum),
 	age: t.Optional(t.Number({ minimum: 0, maximum: 150 })),
@@ -43,6 +52,7 @@ const updateProfileSchema = t.Object({
 	activityLevel: t.Optional(activityLevelEnum),
 	healthGoal: t.Optional(healthGoalEnum),
 	meals: t.Optional(t.Array(mealEnum)),
+	dietaryRestrictions: t.Optional(t.Array(dietaryRestrictionEnum)),
 });
 
 export const userRoutes = new Elysia({ prefix: "/api/user" })
@@ -65,6 +75,7 @@ export const userRoutes = new Elysia({ prefix: "/api/user" })
 					healthGoal: user.healthGoal,
 					tmb: user.tmb,
 					meals: user.meals,
+					dietaryRestrictions: user.dietaryRestrictions,
 					createdAt: user.createdAt,
 					updatedAt: user.updatedAt,
 				})
@@ -136,6 +147,7 @@ export const userRoutes = new Elysia({ prefix: "/api/user" })
 					healthGoal: user.healthGoal,
 					tmb: user.tmb,
 					meals: user.meals,
+					dietaryRestrictions: user.dietaryRestrictions,
 					createdAt: user.createdAt,
 					updatedAt: user.updatedAt,
 				});
