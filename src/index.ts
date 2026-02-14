@@ -9,6 +9,7 @@ import {
 	suggestCalorieDistribution,
 	planDailyMeals,
 } from "./lib/meal-planner";
+import { suggestRecipes } from "./routes/suggest-recipes";
 
 const app = new Elysia()
 	.use(
@@ -22,6 +23,7 @@ const app = new Elysia()
 	.use(betterAuth)
 	.use(openapi())
 	.use(userRoutes)
+	.use(suggestRecipes)
 	.get("/protected", ({ user }) => user, {
 		auth: true,
 	})
