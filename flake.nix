@@ -11,10 +11,7 @@
     in
     {
       devShells.${system}.default = pkgs.mkShell {
-        packages = with pkgs; [
-          nodejs
-          corepack
-        ];
+        packages = [ pkgs.bun ];
       };
     };
 }
