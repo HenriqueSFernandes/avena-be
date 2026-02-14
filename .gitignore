@@ -3,6 +3,7 @@
 .agents/
 mcp.json
 .env
+.env.remote
 # dependencies
 /node_modules
 /.pnp

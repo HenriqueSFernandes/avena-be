@@ -4,7 +4,12 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "bun run --watch src/index.ts",
-    "seed": "bun run src/seed.ts"
+    "seed": "bun run src/seed.ts",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:migrate:remote": "dotenv -e .env.remote -- drizzle-kit migrate",
+    "db:studio": "drizzle-kit studio",
+    "db:studio:remote": "dotenv -e .env.remote -- drizzle-kit studio"
   },
   "dependencies": {
     "@elysiajs/cors": "^1.4.1",
