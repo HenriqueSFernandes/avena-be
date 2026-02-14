@@ -10,8 +10,8 @@ services:
       BETTER_AUTH_URL: ${BETTER_AUTH_URL}
     depends_on:
       - postgres
-    ports: 
-      - 9446:3000
+    expose:
+      - "3000"
     networks:
       - avena-network
       - npm
@@ -36,6 +36,5 @@ volumes:
 networks:
   avena-network:
     driver: bridge
-  default:
+  npm:
     external: true
-    name: npm
