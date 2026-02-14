@@ -3,14 +3,9 @@ import { cors } from "@elysiajs/cors";
 import { openapi } from '@elysiajs/openapi'
 import { Elysia } from "elysia";
 import { betterAuth } from "./lib/auth-middleware";
-import { userRoutes } from "./routes/user";
 import { inventoryRoutes } from "./routes/inventory";
-import {
-	calculateCaloricNeeds,
-	suggestCalorieDistribution,
-	planDailyMeals,
-} from "./lib/meal-planner";
 import { suggestRecipes } from "./routes/suggest-recipes";
+import { userRoutes } from "./routes/user";
 
 const app = new Elysia()
 	.use(
@@ -26,9 +21,6 @@ const app = new Elysia()
 	.use(userRoutes)
 	.use(inventoryRoutes)
 	.use(suggestRecipes)
-	.get("/protected", ({ user }) => user, {
-		auth: true,
-	})
 	.listen({
 		port: 3000,
 		hostname: "0.0.0.0",

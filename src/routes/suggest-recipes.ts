@@ -1,9 +1,13 @@
-import Elysia from "elysia";
+import { Elysia, t } from "elysia";
 import { betterAuth } from "../lib/auth-middleware";
 import { db } from "../lib/db";
 import { inventoryItem, user } from "../db/schema";
 import { eq } from "drizzle-orm";
 import { calculateCaloricNeeds, Ingredient, planDailyMeals, suggestCalorieDistribution } from "../lib/meal-planner";
+
+const suggestRecipesSchema = t.Object({
+	ignoreInventory: t.Optional(t.Boolean()),
+});
 
 const toNumberActivityLevel = (activityLevel: string): number => {
 	switch (activityLevel) {
@@ -26,11 +30,7 @@ export const suggestRecipes = new Elysia({ prefix: "/api/suggest-recipes" })
   .use(betterAuth)
   .post("/", async ({ body, user: currentUser }) => {
     try {
-			const requestBody = body as {
-				ignoreInventory?: boolean;
-			};
-
-			const ignoreInventory = requestBody?.ignoreInventory ?? false;
+			const ignoreInventory = body.ignoreInventory ?? false;
 
       const [userData] = await db
         .select({
@@ -105,9 +105,10 @@ export const suggestRecipes = new Elysia({ prefix: "/api/suggest-recipes" })
 		}
   }, {
     auth: true,
+    body: suggestRecipesSchema,
     detail: {
-      summary: "Suggest recipes based on user profile and inventory",
-      description: "Suggest recipes based on the authenticated user's profile and available ingredients",
+      summary: "Suggest recipes",
+      description: "Generate daily meal plan with recipes based on the authenticated user's profile and available ingredients. Optionally ignore inventory to get recommendations without considering available items.",
       tags: ["Recipes"],
     },
   });
