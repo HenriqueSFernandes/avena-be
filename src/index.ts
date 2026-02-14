@@ -4,6 +4,7 @@ import { openapi } from '@elysiajs/openapi'
 import { Elysia } from "elysia";
 import { betterAuth } from "./lib/auth-middleware";
 import { userRoutes } from "./routes/user";
+import { inventoryRoutes } from "./routes/inventory";
 import {
 	calculateCaloricNeeds,
 	suggestCalorieDistribution,
@@ -23,6 +24,7 @@ const app = new Elysia()
 	.use(betterAuth)
 	.use(openapi())
 	.use(userRoutes)
+	.use(inventoryRoutes)
 	.use(suggestRecipes)
 	.get("/protected", ({ user }) => user, {
 		auth: true,
