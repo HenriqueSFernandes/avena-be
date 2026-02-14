@@ -1,5 +1,28 @@
 import { relations } from "drizzle-orm";
-import { pgTable, text, timestamp, boolean, index } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, boolean, index, pgEnum, real } from "drizzle-orm/pg-core";
+
+export const genderEnum = pgEnum("gender", ["male", "female", "other"]);
+export const activityLevelEnum = pgEnum("activity_level", [
+	"sedentary",
+	"lightly active",
+	"moderately active",
+	"very active",
+	"extra active",
+]);
+export const healthGoalEnum = pgEnum("health_goal", [
+	"lose weight",
+	"stay fit",
+	"build muscle",
+	"eat healthier",
+]);
+export const mealEnum = pgEnum("meal", [
+	"breakfast",
+	"brunch",
+	"lunch",
+	"afternoon",
+	"dinner",
+	"midnight snack",
+]);
 
 export const user = pgTable("user", {
 	id: text("id").primaryKey(),
@@ -12,6 +35,14 @@ export const user = pgTable("user", {
 		.defaultNow()
 		.$onUpdate(() => /* @__PURE__ */ new Date())
 		.notNull(),
+	gender: genderEnum("gender"),
+	age: real("age"),
+	weight: real("weight"),
+	height: real("height"),
+	activityLevel: activityLevelEnum("activity_level"),
+	healthGoal: healthGoalEnum("health_goal"),
+	tmb: real("tmb"),
+	meals: mealEnum("meals").array(),
 });
 
 export const session = pgTable(

@@ -16,6 +16,7 @@ mcp.json
 /.next/
 /out/
 
+.idea/
 # production
 /build
 
