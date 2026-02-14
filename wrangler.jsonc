@@ -10,7 +10,10 @@
 	"observability": {
 		"enabled": true
 	},
-	"compatibility_flags": ["nodejs_compat"],
+	"compatibility_flags": [
+		"nodejs_compat",
+		"nodejs_compat_populate_process_env"
+	],
 	"workers_dev": false,
 	"routes": [
 		{

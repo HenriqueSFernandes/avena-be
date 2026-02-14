@@ -2,7 +2,15 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import type { Database } from "../db";
 
+const authCache = new Map<string, ReturnType<typeof betterAuth>>();
+
 export const createAuth = (db: Database, env: CloudflareBindings) => {
+	const cacheKey = `${env.BETTER_AUTH_URL}_${env.BETTER_AUTH_SECRET}`;
+
+	if (authCache.has(cacheKey)) {
+		return authCache.get(cacheKey) || null;
+	}
+
 	const socialProviders: Record<
 		string,
 		{ clientId: string; clientSecret: string }
@@ -22,7 +30,7 @@ export const createAuth = (db: Database, env: CloudflareBindings) => {
 		};
 	}
 
-	return betterAuth({
+	const auth = betterAuth({
 		baseURL: env.BETTER_AUTH_URL,
 		secret: env.BETTER_AUTH_SECRET,
 		database: drizzleAdapter(db, {
@@ -35,6 +43,11 @@ export const createAuth = (db: Database, env: CloudflareBindings) => {
 		socialProviders:
 			Object.keys(socialProviders).length > 0 ? socialProviders : undefined,
 	});
+
+	// Cache the instance
+	authCache.set(cacheKey, auth);
+
+	return auth;
 };
 
 export type Auth = ReturnType<typeof createAuth>;
