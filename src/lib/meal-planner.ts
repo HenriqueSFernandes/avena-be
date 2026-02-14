@@ -29,6 +29,12 @@ interface Inventory {
   [ingredient: string]: number;
 }
 
+interface Ingredient {
+  name: string;
+  quantity: number;
+  unit: string;
+}
+
 interface Recipe {
   id: string;
   name: string;
@@ -48,7 +54,7 @@ interface Recipe {
   isVegan: boolean;
   isGlutenFree: boolean;
   tags: string[];
-  ingredientsUsed: Record<string, number>;
+  ingredients: Ingredient[];
   coverageScore: number;
 }
 
@@ -81,18 +87,18 @@ export function suggestCalorieDistribution(totalCalories: number) {
 }
 
 function inventoryCoverageScore(
-  recipeIngredients: Record<string, number>,
+  recipeIngredients: Ingredient[],
   inventory: Inventory
 ): number {
-  const totalIngredients = Object.values(recipeIngredients).reduce((a, b) => a + b, 0);
+  const totalIngredients = recipeIngredients.reduce((sum, ing) => sum + ing.quantity, 0);
 
   if (totalIngredients === 0) return 0;
 
   let availableIngredients = 0;
-  for (const [ingredient, quantity] of Object.entries(inventory)) {
-    const ingredientLower = ingredient.toLowerCase();
-    if (ingredientLower in recipeIngredients) {
-      availableIngredients += quantity;
+  for (const recipeIng of recipeIngredients) {
+    const ingredientLower = recipeIng.name.toLowerCase();
+    if (ingredientLower in inventory) {
+      availableIngredients += Math.min(recipeIng.quantity, inventory[ingredientLower]);
     }
   }
 
@@ -101,16 +107,16 @@ function inventoryCoverageScore(
 
 function deductIngredientsFromInventory(
   inventory: Inventory,
-  recipeIngredients: Record<string, number>
+  recipeIngredients: Ingredient[]
 ): Inventory {
   const updatedInventory = { ...inventory };
 
-  for (const [ingredientName, quantityUsed] of Object.entries(recipeIngredients)) {
-    const ingredientLower = ingredientName.toLowerCase();
+  for (const ingredient of recipeIngredients) {
+    const ingredientLower = ingredient.name.toLowerCase();
     if (ingredientLower in updatedInventory) {
       updatedInventory[ingredientLower] = Math.max(
         0,
-        updatedInventory[ingredientLower] - quantityUsed
+        updatedInventory[ingredientLower] - ingredient.quantity
       );
     }
   }
@@ -242,16 +248,28 @@ export async function selectBestRecipes(
     }
 
     // Calculate ingredient coverage
-    const ingredients: Record<string, number> = {};
+    const ingredients: Ingredient[] = [];
     for (const group of ingredientGroups) {
       for (const ingredient of group.items || []) {
         const name = ingredient.name.toLowerCase();
         let quantity = ingredient.quantity || 0;
+
         const hasSmallUnit = ['g', 'ml'].includes(ingredient.unit);
         if (hasSmallUnit) {
           quantity /= 1000; // Normalize measurements
         }
-        ingredients[name] = (ingredients[name] || 0) + parseFloat(quantity || 0);
+
+        const unit = ingredient.unit == 'g'
+          ? 'kg'
+          : ingredient.unit == 'ml'
+            ? 'l'
+            : '';
+
+        ingredients.push({
+          name,
+          quantity: parseFloat(quantity || 0),
+          unit,
+        });
       }
     }
 
@@ -274,7 +292,7 @@ export async function selectBestRecipes(
       isVegan: dietary.is_vegan || false,
       isGlutenFree: dietary.is_gluten_free || false,
       tags: recipeTags,
-      ingredientsUsed: ingredients,
+      ingredients: ingredients,
       coverageScore: inventoryCoverageScore(ingredients, inventory),
     };
 
@@ -449,7 +467,7 @@ export async function planDailyMeals(
       // Update inventory
       currentInventory = deductIngredientsFromInventory(
         currentInventory,
-        selectedRecipe.ingredientsUsed
+        selectedRecipe.ingredients
       );
     }
   }
