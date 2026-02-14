@@ -25,17 +25,15 @@ interface UserProfile {
   dietaryRestrictions?: string[]; // e.g., ['vegan', 'gluten-free', 'no-pork']
 }
 
-interface Inventory {
-  [ingredient: string]: number;
-}
+export type Inventory = Ingredient[];
 
-interface Ingredient {
+export interface Ingredient {
   name: string;
   quantity: number;
   unit: string;
 }
 
-interface Recipe {
+export interface Recipe {
   id: string;
   name: string;
   description: string;
@@ -97,8 +95,9 @@ function inventoryCoverageScore(
   let availableIngredients = 0;
   for (const recipeIng of recipeIngredients) {
     const ingredientLower = recipeIng.name.toLowerCase();
-    if (ingredientLower in inventory) {
-      availableIngredients += Math.min(recipeIng.quantity, inventory[ingredientLower]);
+    const inventoryItem = inventory.find(ing => ing.name.toLowerCase() === ingredientLower);
+    if (inventoryItem) {
+      availableIngredients += Math.min(recipeIng.quantity, inventoryItem.quantity);
     }
   }
 
@@ -109,15 +108,20 @@ function deductIngredientsFromInventory(
   inventory: Inventory,
   recipeIngredients: Ingredient[]
 ): Inventory {
-  const updatedInventory = { ...inventory };
+  const updatedInventory = [...inventory];
 
   for (const ingredient of recipeIngredients) {
     const ingredientLower = ingredient.name.toLowerCase();
-    if (ingredientLower in updatedInventory) {
-      updatedInventory[ingredientLower] = Math.max(
+    const inventoryItem = updatedInventory.find(ing => ing.name.toLowerCase() === ingredientLower);
+    if (inventoryItem) {
+      const updatedQuantity = Math.max(
         0,
-        updatedInventory[ingredientLower] - ingredient.quantity
+        inventoryItem.quantity - ingredient.quantity
       );
+      updatedInventory[updatedInventory.indexOf(inventoryItem)] = {
+        ...inventoryItem,
+        quantity: updatedQuantity
+      };
     }
   }
 

@@ -3,7 +3,7 @@ import { betterAuth } from "../lib/auth-middleware";
 import { db } from "../lib/db";
 import { user } from "../db/schema";
 import { eq } from "drizzle-orm";
-import { calculateCaloricNeeds, planDailyMeals, suggestCalorieDistribution } from "../lib/meal-planner";
+import { calculateCaloricNeeds, Ingredient, planDailyMeals, suggestCalorieDistribution } from "../lib/meal-planner";
 
 const toNumberActivityLevel = (activityLevel: string): number => {
 	switch (activityLevel) {
@@ -28,7 +28,7 @@ export const suggestRecipes = new Elysia({ prefix: "/api/suggest-recipes" })
     try {
 			// Type cast the body for TypeScript
 			const requestBody = body as {
-				inventory: Record<string, number>;
+				inventory: Ingredient[];
 			};
 
 			if (!requestBody.inventory) {
