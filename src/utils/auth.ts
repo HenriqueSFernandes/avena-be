@@ -3,15 +3,18 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import type { Database } from "../db";
 
 export const createAuth = (db: Database, env: CloudflareBindings) => {
-	const socialProviders: any = {};
-	
+	const socialProviders: Record<
+		string,
+		{ clientId: string; clientSecret: string }
+	> = {};
+
 	if (env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET) {
 		socialProviders.google = {
 			clientId: env.GOOGLE_CLIENT_ID,
 			clientSecret: env.GOOGLE_CLIENT_SECRET,
 		};
 	}
-	
+
 	if (env.GITHUB_CLIENT_ID && env.GITHUB_CLIENT_SECRET) {
 		socialProviders.github = {
 			clientId: env.GITHUB_CLIENT_ID,
@@ -29,7 +32,8 @@ export const createAuth = (db: Database, env: CloudflareBindings) => {
 			enabled: true,
 			requireEmailVerification: false,
 		},
-		socialProviders: Object.keys(socialProviders).length > 0 ? socialProviders : undefined,
+		socialProviders:
+			Object.keys(socialProviders).length > 0 ? socialProviders : undefined,
 	});
 };
 

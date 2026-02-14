@@ -7,14 +7,15 @@ export type Database = DrizzleD1Database<typeof schema>;
 
 export const dbMiddleware: MiddlewareHandler<{
 	Bindings: CloudflareBindings;
+	Variables: {
+		db?: Database;
+	};
 }> = async (c, next) => {
 	const db = drizzle(c.env.avena_db, { schema });
 	c.set("db", db);
 	await next();
 };
 
-export const getDb = (
-	c: Context<{ Bindings: CloudflareBindings }>,
-): Database => {
+export const getDb = (c: Context): Database => {
 	return c.get("db") as Database;
 };
