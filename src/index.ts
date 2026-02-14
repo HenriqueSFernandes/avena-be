@@ -22,27 +22,46 @@ const app = new Elysia()
 	.get("/protected", ({ user }) => user, {
 		auth: true,
 	})
-	.post("/suggest-recipes", async () => {
+	.post("/suggest-recipes", async ({ body }) => {
 		try {
-			// Hardcoded user profile (from notebook)
-			const userProfile = {
-				male: true,
-				height: 183, // cm
-				weight: 81, // kg
-				age: 21,
-				activityLevel: 1.55, // Moderately active
-				dietaryRestrictions: [], // e.g., ['vegan', 'gluten-free', 'no-pork', 'no-alcohol']
+			// Type cast the body for TypeScript
+			const requestBody = body as {
+				userProfile: {
+					male: boolean;
+					height: number;
+					weight: number;
+					age: number;
+					activityLevel: number;
+					dietaryRestrictions?: string[];
+				};
+				inventory: Record<string, number>;
 			};
 
-			// Hardcoded inventory (from notebook)
-			const inventory = {
-				egg: 2,
-				milk: 0.5, // l
-				flour: 0.2, // kg
-				sugar: 0.1, // kg
-				butter: 0.05, // kg
-				salt: 0.01, // kg
+			// Validate required fields
+			if (!requestBody.userProfile) {
+				return {
+					success: false,
+					error: "userProfile is required",
+				};
+			}
+
+			if (!requestBody.inventory) {
+				return {
+					success: false,
+					error: "inventory is required",
+				};
+			}
+
+			const userProfile = {
+				male: requestBody.userProfile.male,
+				height: requestBody.userProfile.height,
+				weight: requestBody.userProfile.weight,
+				age: requestBody.userProfile.age,
+				activityLevel: requestBody.userProfile.activityLevel,
+				dietaryRestrictions: requestBody.userProfile.dietaryRestrictions ?? [],
 			};
+
+			const inventory = requestBody.inventory;
 
 			// Calculate caloric needs
 			const totalCalories = calculateCaloricNeeds(userProfile);

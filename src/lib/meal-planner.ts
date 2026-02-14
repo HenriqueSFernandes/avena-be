@@ -118,6 +118,75 @@ function deductIngredientsFromInventory(
   return updatedInventory;
 }
 
+// Dietary restrictions configuration
+type DietaryRestriction = {
+  requiredTags?: string[];
+  forbiddenTags?: string[];
+  customCheck?: (tags: string[]) => boolean;
+};
+
+const DIETARY_RESTRICTIONS: Record<string, DietaryRestriction> = {
+  'vegan': {
+    requiredTags: ['vegan'],
+  },
+  'vegetarian': {
+    customCheck: (tags: string[]) => tags.some(tag => ['vegan', 'vegetarian'].includes(tag)),
+  },
+  'pescatarian': {
+    customCheck: (tags: string[]) => tags.some(tag => ['vegan', 'vegetarian', 'pescatarian'].includes(tag)),
+  },
+  'gluten-free': {
+    customCheck: (tags: string[]) => tags.some(tag => tag.includes('gluten-free')),
+  },
+  'no-pork': {
+    customCheck: (tags: string[]) => !tags.some(tag => tag.includes('pork')),
+  },
+  'no-alcohol': {
+    customCheck: (tags: string[]) => !tags.some(tag => tag.includes('wine') || tag.includes('alcohol')),
+  },
+};
+
+function checkDietaryRestrictions(recipeTags: string[], dietaryPrefs: string[]): boolean {
+  if (!dietaryPrefs || dietaryPrefs.length === 0) {
+    return true;
+  }
+
+  // Normalize tags to lowercase for comparison
+  const tagsLower = recipeTags.map(tag => tag.toLowerCase());
+
+  for (const pref of dietaryPrefs) {
+    if (!(pref in DIETARY_RESTRICTIONS)) {
+      continue;
+    }
+
+    const restriction = DIETARY_RESTRICTIONS[pref];
+
+    // Check custom function if exists
+    if (restriction.customCheck) {
+      if (!restriction.customCheck(tagsLower)) {
+        return false;
+      }
+    } else {
+      // Check required tags
+      if (restriction.requiredTags) {
+        if (!restriction.requiredTags.some(reqTag => tagsLower.includes(reqTag))) {
+          return false;
+        }
+      }
+
+      // Check forbidden tags
+      if (restriction.forbiddenTags) {
+        if (restriction.forbiddenTags.some(forbiddenTag => tagsLower.includes(forbiddenTag))) {
+          return false;
+        }
+      }
+    }
+  }
+
+  return true;
+}
+
+
 export async function selectBestRecipes(
   mealType: string,
   targetCalories: number,
@@ -160,6 +229,11 @@ export async function selectBestRecipes(
     const nutrition = JSON.parse(row.nutrition || '{}').per_serving || {};
     const dietary = JSON.parse(row.dietary || '{}');
     const recipeTags = typeof row.tags === 'string' ? JSON.parse(row.tags) : (row.tags || []);
+
+    // Check dietary restrictions
+    if (!checkDietaryRestrictions(recipeTags, dietaryPrefs)) {
+      continue;
+    }
 
     // Check calorie range
     const calories = row.calories || 0;
