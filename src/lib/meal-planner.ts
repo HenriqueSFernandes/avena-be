@@ -1,0 +1,387 @@
+import OpenAI from 'openai';
+import { db } from './db';
+import { recipes } from '../db/schema/recipes';
+import { inArray } from 'drizzle-orm';
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+const CALORIE_MARGIN = 250;
+
+const MEAL_TYPE_TO_CATEGORIES: Record<string, string[]> = {
+  'Breakfast': ['appetizer', 'breakfast', 'bread', 'snack'],
+  'Lunch': ['main course', 'main dish', 'salad', 'soup', 'baked good'],
+  'Snacks': ['appetizer', 'snack', 'dessert', 'bread'],
+  'Dinner': ['main course', 'main dish', 'salad', 'soup', 'baked good'],
+};
+
+interface UserProfile {
+  male: boolean;
+  height: number; // cm
+  weight: number; // kg
+  age: number;
+  activityLevel: number;
+}
+
+interface Inventory {
+  [ingredient: string]: number;
+}
+
+interface Recipe {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  cuisine: string;
+  difficulty: string;
+  calories: number;
+  totalTime: string;
+  activeTime: string;
+  yields: string;
+  proteinG: number;
+  fatG: number;
+  carbsG: number;
+  fiberG: number;
+  isVegetarian: boolean;
+  isVegan: boolean;
+  isGlutenFree: boolean;
+  tags: string[];
+  ingredientsUsed: Record<string, number>;
+  coverageScore: number;
+}
+
+interface SelectedRecipe extends Recipe {
+  aiReason?: string;
+  mealType?: string;
+}
+
+export function calculateCaloricNeeds(profile: UserProfile): number {
+  const { male, height, weight, age, activityLevel } = profile;
+
+  // Mifflin–St Jeor equation for BMR
+  let bmr: number;
+  if (male) {
+    bmr = 10 * weight + 6.25 * height - 5 * age + 5;
+  } else {
+    bmr = 10 * weight + 6.25 * height - 5 * age - 161;
+  }
+
+  return bmr * activityLevel;
+}
+
+export function suggestCalorieDistribution(totalCalories: number) {
+  return {
+    Breakfast: totalCalories * 0.25,
+    Lunch: totalCalories * 0.35,
+    Snacks: totalCalories * 0.10,
+    Dinner: totalCalories * 0.30,
+  };
+}
+
+function inventoryCoverageScore(
+  recipeIngredients: Record<string, number>,
+  inventory: Inventory
+): number {
+  const totalIngredients = Object.values(recipeIngredients).reduce((a, b) => a + b, 0);
+
+  if (totalIngredients === 0) return 0;
+
+  let availableIngredients = 0;
+  for (const [ingredient, quantity] of Object.entries(inventory)) {
+    const ingredientLower = ingredient.toLowerCase();
+    if (ingredientLower in recipeIngredients) {
+      availableIngredients += quantity;
+    }
+  }
+
+  return availableIngredients / totalIngredients;
+}
+
+function deductIngredientsFromInventory(
+  inventory: Inventory,
+  recipeIngredients: Record<string, number>
+): Inventory {
+  const updatedInventory = { ...inventory };
+
+  for (const [ingredientName, quantityUsed] of Object.entries(recipeIngredients)) {
+    const ingredientLower = ingredientName.toLowerCase();
+    if (ingredientLower in updatedInventory) {
+      updatedInventory[ingredientLower] = Math.max(
+        0,
+        updatedInventory[ingredientLower] - quantityUsed
+      );
+    }
+  }
+
+  return updatedInventory;
+}
+
+export async function selectBestRecipes(
+  mealType: string,
+  targetCalories: number,
+  inventory: Inventory,
+  dietaryPrefs: string[] = []
+): Promise<Recipe[]> {
+  const lowerBound = targetCalories - CALORIE_MARGIN;
+  const upperBound = targetCalories + CALORIE_MARGIN;
+  const categories = MEAL_TYPE_TO_CATEGORIES[mealType] || [];
+
+  if (categories.length === 0) {
+    return [];
+  }
+
+  // Query recipes
+  const results = await db
+    .select({
+      id: recipes.id,
+      name: recipes.name,
+      description: recipes.description,
+      category: recipes.category,
+      cuisine: recipes.cuisine,
+      difficulty: recipes.difficulty,
+      ingredients: recipes.ingredients,
+      meta: recipes.meta,
+      nutrition: recipes.nutrition,
+      calories: recipes.calories,
+      dietary: recipes.dietary,
+      tags: recipes.tags,
+    })
+    .from(recipes)
+    .where(inArray(recipes.category, categories));
+
+  const sortedResults: Recipe[] = [];
+
+  for (const row of results) {
+    // Parse JSON fields
+    const ingredientGroups = JSON.parse(row.ingredients || '[]');
+    const meta = JSON.parse(row.meta || '{}');
+    const nutrition = JSON.parse(row.nutrition || '{}').per_serving || {};
+    const dietary = JSON.parse(row.dietary || '{}');
+    const recipeTags = typeof row.tags === 'string' ? JSON.parse(row.tags) : (row.tags || []);
+
+    // Check calorie range
+    const calories = row.calories || 0;
+    if (calories < lowerBound || calories > upperBound) {
+      continue;
+    }
+
+    // Calculate ingredient coverage
+    const ingredients: Record<string, number> = {};
+    for (const group of ingredientGroups) {
+      for (const ingredient of group.items || []) {
+        const name = ingredient.name.toLowerCase();
+        let quantity = ingredient.quantity || 0;
+        const hasSmallUnit = ['g', 'ml'].includes(ingredient.unit);
+        if (hasSmallUnit) {
+          quantity /= 1000; // Normalize measurements
+        }
+        ingredients[name] = (ingredients[name] || 0) + parseFloat(quantity || 0);
+      }
+    }
+
+    const recipe: Recipe = {
+      id: row.id,
+      name: row.name || '',
+      description: row.description || '',
+      category: row.category || '',
+      cuisine: row.cuisine || '',
+      difficulty: row.difficulty || '',
+      calories,
+      totalTime: meta.total_time || 'N/A',
+      activeTime: meta.active_time || 'N/A',
+      yields: meta.yields || 'N/A',
+      proteinG: nutrition.protein_g || 0,
+      fatG: nutrition.fat_g || 0,
+      carbsG: nutrition.carbohydrates_g || 0,
+      fiberG: nutrition.fiber_g || 0,
+      isVegetarian: dietary.is_vegetarian || false,
+      isVegan: dietary.is_vegan || false,
+      isGlutenFree: dietary.is_gluten_free || false,
+      tags: recipeTags,
+      ingredientsUsed: ingredients,
+      coverageScore: inventoryCoverageScore(ingredients, inventory),
+    };
+
+    sortedResults.push(recipe);
+  }
+
+  // Sort by coverage score descending
+  sortedResults.sort((a, b) => b.coverageScore - a.coverageScore);
+
+  return sortedResults.slice(0, 5);
+}
+
+export async function aiSuggestBestRecipe(
+  recipesList: Recipe[],
+  mealType: string,
+  targetCalories: number,
+  userInventory: Inventory,
+  previousMeals: SelectedRecipe[] = []
+): Promise<SelectedRecipe | null> {
+  if (recipesList.length === 0) {
+    return null;
+  }
+
+  // Prepare recipe information for the AI
+  const recipesInfo = recipesList.map((recipe, idx) => ({
+    index: idx,
+    name: recipe.name,
+    cuisine: recipe.cuisine,
+    difficulty: recipe.difficulty,
+    calories: recipe.calories,
+    totalTime: recipe.totalTime,
+    proteinG: recipe.proteinG,
+    fatG: recipe.fatG,
+    carbsG: recipe.carbsG,
+    isVegetarian: recipe.isVegetarian,
+    isVegan: recipe.isVegan,
+    isGlutenFree: recipe.isGlutenFree,
+    coverageScore: recipe.coverageScore,
+    description: recipe.description.substring(0, 150) + '...',
+  }));
+
+  // Prepare previous meals context
+  const previousMealsSummary = previousMeals.map((meal) => ({
+    mealType: meal.mealType,
+    name: meal.name,
+    cuisine: meal.cuisine,
+    calories: meal.calories,
+    proteinG: meal.proteinG,
+    fatG: meal.fatG,
+    carbsG: meal.carbsG,
+  }));
+
+  // Create a detailed prompt
+  const prompt = `You are a meal planning assistant. Help choose the best recipe for ${mealType}.
+
+Target calories: ${targetCalories.toFixed(0)} calories (±${CALORIE_MARGIN} is acceptable)
+
+Available inventory:
+${JSON.stringify(userInventory, null, 2)}
+
+Previously selected meals today:
+${previousMealsSummary.length > 0 ? JSON.stringify(previousMealsSummary, null, 2) : 'None - this is the first meal'}
+
+Recipe options (sorted by ingredient availability):
+${JSON.stringify(recipesInfo, null, 2)}
+
+Coverage score indicates how many ingredients the user already has (0-1 scale, higher is better).
+
+Please analyze these recipes and recommend the BEST ONE considering:
+1. How closely calories match the target
+2. Ingredient availability (coverage score)
+3. Variety and nutrition balance across the day (avoid repeating cuisines or flavors)
+4. Complementing previous meals (balance macros across the day)
+5. Practicality for ${mealType} (time, difficulty)
+6. Dietary considerations
+
+Respond with ONLY the index number (0-${recipesList.length - 1}) of the best recipe, followed by a brief explanation on the next line.
+Format:
+<index>
+<reason>`;
+
+  // Call OpenAI API
+  try {
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a helpful meal planning assistant. Respond concisely with just an index number and brief reason.',
+        },
+        { role: 'user', content: prompt },
+      ],
+      temperature: 0.7,
+      max_tokens: 300,
+    });
+
+    const responseText = response.choices[0].message.content?.trim() || '';
+    const lines = responseText.split('\n', 2);
+
+    const selectedIndex = parseInt(lines[0]);
+    const reason = lines.length > 1 ? lines[1] : 'AI recommendation';
+
+    if (selectedIndex >= 0 && selectedIndex < recipesList.length) {
+      const selectedRecipe = { ...recipesList[selectedIndex] };
+      return {
+        ...selectedRecipe,
+        aiReason: reason,
+      };
+    }
+  } catch (error) {
+    console.error('Error calling OpenAI API:', error);
+  }
+
+  // Fallback to highest coverage score
+  return recipesList[0];
+}
+
+export async function planDailyMeals(
+  totalCalories: number,
+  calorieDistribution: Record<string, number>,
+  initialInventory: Inventory,
+  dietaryPrefs: string[] = []
+) {
+  const mealOrder = ['Breakfast', 'Lunch', 'Snacks', 'Dinner'];
+  const dailyMealPlan: Record<string, SelectedRecipe> = {};
+  const allSelectedMeals: SelectedRecipe[] = [];
+  let dailyConsumedCalories = 0;
+  let dailyRemainingCalories = totalCalories;
+  let currentInventory = { ...initialInventory };
+
+  for (const mealType of mealOrder) {
+    // Calculate target calories based on original distribution
+    const originalTarget = calorieDistribution[mealType];
+
+    // Adjust if we're running low on remaining calories
+    const adjustedTarget =
+      mealType === 'Dinner'
+        ? dailyRemainingCalories
+        : Math.min(originalTarget, dailyRemainingCalories * 0.5);
+
+    // Find candidate recipes
+    const candidateRecipes = await selectBestRecipes(
+      mealType,
+      adjustedTarget,
+      currentInventory,
+      dietaryPrefs
+    );
+
+    if (candidateRecipes.length === 0) {
+      console.warn(`No recipes found for ${mealType}`);
+      continue;
+    }
+
+    // Use AI to select the best recipe
+    const selectedRecipe = await aiSuggestBestRecipe(
+      candidateRecipes,
+      mealType,
+      adjustedTarget,
+      currentInventory,
+      allSelectedMeals
+    );
+
+    if (selectedRecipe) {
+      selectedRecipe.mealType = mealType;
+
+      // Update tracking
+      dailyMealPlan[mealType] = selectedRecipe;
+      allSelectedMeals.push(selectedRecipe);
+      dailyConsumedCalories += selectedRecipe.calories;
+      dailyRemainingCalories = totalCalories - dailyConsumedCalories;
+
+      // Update inventory
+      currentInventory = deductIngredientsFromInventory(
+        currentInventory,
+        selectedRecipe.ingredientsUsed
+      );
+    }
+  }
+
+  return {
+    meals: dailyMealPlan,
+    totalCalories: dailyConsumedCalories,
+    finalInventory: currentInventory,
+  };
+}
