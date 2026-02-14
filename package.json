@@ -11,14 +11,21 @@
 		"format:fix": "biome format --write .",
 		"check": "biome check .",
 		"check:fix": "biome check --write .",
-		"ci": "biome check ."
+		"ci": "biome check .",
+		"migrate": "drizzle-kit generate && wrangler d1 migrations apply avena_db --local",
+		"migrate:prod": "drizzle-kit generate && wrangler d1 migrations apply avena_db --remote"
 	},
 	"dependencies": {
+		"better-auth": "^1.4.18",
+		"dotenv": "^17.3.1",
+		"drizzle-orm": "^0.45.1",
 		"hono": "^4.11.9"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.3.15",
 		"@types/node": "^25.2.3",
+		"drizzle-kit": "^0.31.9",
+		"tsx": "^4.21.0",
 		"wrangler": "^4.65.0"
 	}
 }

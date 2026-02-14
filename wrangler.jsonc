@@ -17,5 +17,13 @@
 			"pattern": "avena.henriquesf.me",
 			"custom_domain": true
 		}
+	],
+	"d1_databases": [
+		{
+			"binding": "avena_db",
+			"database_name": "avena-db",
+			"database_id": "6836bbb3-a051-4377-94e6-95e180391a17",
+			"migrations_dir": "drizzle"
+		}
 	]
 }
