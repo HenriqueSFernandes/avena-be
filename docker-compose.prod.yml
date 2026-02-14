@@ -3,8 +3,6 @@ services:
     image: registry.henriquesf.me/avena-be:${IMAGE_TAG:-latest}
     container_name: avena-app
     restart: unless-stopped
-    ports:
-      - "3000:3000"
     environment:
       NODE_ENV: production
       DATABASE_URL: ${DATABASE_URL}
@@ -12,8 +10,11 @@ services:
       BETTER_AUTH_URL: ${BETTER_AUTH_URL}
     depends_on:
       - postgres
+    ports: 
+      - 9446:3000
     networks:
       - avena-network
+      - npm
 
   postgres:
     image: postgres:17
@@ -35,3 +36,6 @@ volumes:
 networks:
   avena-network:
     driver: bridge
+  default:
+    external: true
+    name: npm
