@@ -1,7 +1,7 @@
 import Elysia from "elysia";
 import { betterAuth } from "../lib/auth-middleware";
 import { db } from "../lib/db";
-import { user } from "../db/schema";
+import { inventoryItem, user } from "../db/schema";
 import { eq } from "drizzle-orm";
 import { calculateCaloricNeeds, Ingredient, planDailyMeals, suggestCalorieDistribution } from "../lib/meal-planner";
 
@@ -26,17 +26,11 @@ export const suggestRecipes = new Elysia({ prefix: "/api/suggest-recipes" })
   .use(betterAuth)
   .post("/", async ({ body, user: currentUser }) => {
     try {
-			// Type cast the body for TypeScript
 			const requestBody = body as {
-				inventory: Ingredient[];
+				ignoreInventory?: boolean;
 			};
 
-			if (!requestBody.inventory) {
-				return {
-					success: false,
-					error: "inventory is required",
-				};
-			}
+			const ignoreInventory = requestBody?.ignoreInventory ?? false;
 
       const [userData] = await db
         .select({
@@ -67,8 +61,20 @@ export const suggestRecipes = new Elysia({ prefix: "/api/suggest-recipes" })
 				dietaryRestrictions: userData.dietaryRestrictions ?? [],
 			};
 
-			const inventory = requestBody.inventory;
-
+			const inventory = ignoreInventory
+				? []
+				: await db
+						.select()
+						.from(inventoryItem)
+						.where(eq(inventoryItem.userId, currentUser.id))
+						.then((items) =>
+							items.map((item) => ({
+								name: item.name,
+								quantity: item.quantity,
+								unit: item.unit,
+							} as Ingredient))
+						);
+						
 			// Calculate caloric needs
 			const totalCalories = calculateCaloricNeeds(userProfile);
 
