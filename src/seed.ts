@@ -23,6 +23,7 @@ async function seed() {
 			console.log(`   Password: ${testPassword}`);
 			console.log(`   Name: ${testName}`);
 		}
+		// biome-ignore lint/suspicious/noExplicitAny: <its a hackathon bruh>
 	} catch (error: any) {
 		if (
 			error?.message?.includes("already exists") ||

@@ -1,5 +1,12 @@
 import { relations } from "drizzle-orm";
-import { pgTable, text, timestamp, real, pgEnum, unique } from "drizzle-orm/pg-core";
+import {
+	pgEnum,
+	pgTable,
+	real,
+	text,
+	timestamp,
+	unique,
+} from "drizzle-orm/pg-core";
 import { user } from "./auth";
 
 export const unitEnum = pgEnum("unit", ["", "kg", "l"]);
@@ -22,7 +29,7 @@ export const inventoryItem = pgTable(
 	},
 	(table) => ({
 		userItemUnique: unique("user_item_unique").on(table.userId, table.name),
-	})
+	}),
 );
 
 export const inventoryItemRelations = relations(inventoryItem, ({ one }) => ({

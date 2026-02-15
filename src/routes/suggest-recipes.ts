@@ -1,9 +1,14 @@
+import { eq } from "drizzle-orm";
 import { Elysia, t } from "elysia";
+import { inventoryItem, user } from "../db/schema";
 import { betterAuth } from "../lib/auth-middleware";
 import { db } from "../lib/db";
-import { inventoryItem, user } from "../db/schema";
-import { eq } from "drizzle-orm";
-import { calculateCaloricNeeds, Ingredient, planDailyMeals, suggestCalorieDistribution } from "../lib/meal-planner";
+import {
+	calculateCaloricNeeds,
+	type Ingredient,
+	planDailyMeals,
+	suggestCalorieDistribution,
+} from "../lib/meal-planner";
 
 const suggestRecipesSchema = t.Object({
 	ignoreInventory: t.Optional(t.Boolean()),
@@ -27,91 +32,104 @@ const toNumberActivityLevel = (activityLevel: string): number => {
 };
 
 export const suggestRecipes = new Elysia({ prefix: "/api/suggest-recipes" })
-  .use(betterAuth)
-  .post("/", async ({ body, user: currentUser }) => {
-    try {
-			const ignoreInventory = body.ignoreInventory ?? false;
+	.use(betterAuth)
+	.post(
+		"/",
+		async ({ body, user: currentUser }) => {
+			try {
+				const ignoreInventory = body.ignoreInventory ?? false;
 
-      const [userData] = await db
-        .select({
-          gender: user.gender,
-          height: user.height,
-          weight: user.weight,
-          age: user.age,
-          activityLevel: user.activityLevel,
-					dietaryRestrictions: user.dietaryRestrictions,
-        })
-        .from(user)
-        .where(eq(user.id, currentUser.id))
-        .limit(1);
+				const [userData] = await db
+					.select({
+						gender: user.gender,
+						height: user.height,
+						weight: user.weight,
+						age: user.age,
+						activityLevel: user.activityLevel,
+						dietaryRestrictions: user.dietaryRestrictions,
+					})
+					.from(user)
+					.where(eq(user.id, currentUser.id))
+					.limit(1);
 
-			if (!userData || !userData.gender || !userData.height || !userData.weight || !userData.age || !userData.activityLevel) {
+				if (
+					!userData ||
+					!userData.gender ||
+					!userData.height ||
+					!userData.weight ||
+					!userData.age ||
+					!userData.activityLevel
+				) {
+					return {
+						success: false,
+						error:
+							"Incomplete user profile. Please update your profile with gender, height, weight, age, and activity level.",
+					};
+				}
+
+				const userProfile = {
+					male: userData.gender === "male",
+					height: userData.height,
+					weight: userData.weight,
+					age: userData.age,
+					activityLevel: toNumberActivityLevel(userData.activityLevel),
+					dietaryRestrictions: userData.dietaryRestrictions ?? [],
+				};
+
+				const inventory = ignoreInventory
+					? []
+					: await db
+							.select()
+							.from(inventoryItem)
+							.where(eq(inventoryItem.userId, currentUser.id))
+							.then((items) =>
+								items.map(
+									(item) =>
+										({
+											name: item.name,
+											quantity: item.quantity,
+											unit: item.unit,
+										}) as Ingredient,
+								),
+							);
+
+				// Calculate caloric needs
+				const totalCalories = calculateCaloricNeeds(userProfile);
+
+				// Get calorie distribution across meals
+				const calorieDistribution = suggestCalorieDistribution(totalCalories);
+
+				// Plan daily meals
+				const mealPlan = await planDailyMeals(
+					totalCalories,
+					calorieDistribution,
+					inventory,
+					userProfile.dietaryRestrictions,
+				);
+
+				return {
+					success: true,
+					userProfile,
+					totalCalories,
+					calorieDistribution,
+					mealPlan,
+				};
+			} catch (error) {
+				console.error("Error in /suggest-recipes:", error);
 				return {
 					success: false,
-					error: "Incomplete user profile. Please update your profile with gender, height, weight, age, and activity level.",
+					error: error instanceof Error ? error.message : "Unknown error",
 				};
 			}
-
-			const userProfile = {
-				male: userData.gender === "male",
-				height: userData.height,
-				weight: userData.weight,
-				age: userData.age,
-				activityLevel: toNumberActivityLevel(userData.activityLevel),
-				dietaryRestrictions: userData.dietaryRestrictions ?? [],
-			};
-
-			const inventory = ignoreInventory
-				? []
-				: await db
-						.select()
-						.from(inventoryItem)
-						.where(eq(inventoryItem.userId, currentUser.id))
-						.then((items) =>
-							items.map((item) => ({
-								name: item.name,
-								quantity: item.quantity,
-								unit: item.unit,
-							} as Ingredient))
-						);
-						
-			// Calculate caloric needs
-			const totalCalories = calculateCaloricNeeds(userProfile);
-
-			// Get calorie distribution across meals
-			const calorieDistribution = suggestCalorieDistribution(totalCalories);
-
-			// Plan daily meals
-			const mealPlan = await planDailyMeals(
-				totalCalories,
-				calorieDistribution,
-				inventory,
-				userProfile.dietaryRestrictions
-			);
-
-			return {
-				success: true,
-				userProfile,
-				totalCalories,
-				calorieDistribution,
-				mealPlan,
-			};
-		} catch (error) {
-			console.error("Error in /suggest-recipes:", error);
-			return {
-				success: false,
-				error: error instanceof Error ? error.message : "Unknown error",
-			};
-		}
-  }, {
-    auth: true,
-    body: suggestRecipesSchema,
-    detail: {
-      summary: "Suggest recipes",
-      description: "Generate daily meal plan with recipes based on the authenticated user's profile and available ingredients. Optionally ignore inventory to get recommendations without considering available items.",
-      tags: ["Recipes"],
-    },
-  });
-
-
-
+		},
+		{
+			auth: true,
+			body: suggestRecipesSchema,
+			detail: {
+				summary: "Suggest recipes",
+				description:
+					"Generate daily meal plan with recipes based on the authenticated user's profile and available ingredients. Optionally ignore inventory to get recommendations without considering available items.",
+				tags: ["Recipes"],
+			},
+		},
+	);
