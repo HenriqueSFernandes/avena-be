@@ -493,7 +493,7 @@ export async function planDailyMeals(
 	const allSelectedMeals: SelectedRecipe[] = [];
 	let dailyConsumedCalories = 0;
 	let dailyRemainingCalories = totalCalories;
-	let currentInventory = { ...initialInventory };
+	let currentInventory = [ ...initialInventory ];
 
 	for (const mealType of mealOrder) {
 		// Calculate target calories based on original distribution
