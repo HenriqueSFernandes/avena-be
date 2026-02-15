@@ -348,7 +348,7 @@ export async function selectBestRecipes(
 			id: row.id,
 			name: row.name || "",
 			description: row.description || "",
-			category: row.category || "",
+			category: mealType,
 			cuisine: row.cuisine || "",
 			difficulty: row.difficulty || "",
 			calories,
