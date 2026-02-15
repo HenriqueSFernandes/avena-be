@@ -4,6 +4,7 @@ import { openapi } from "@elysiajs/openapi";
 import { Elysia } from "elysia";
 import { betterAuth } from "./lib/auth-middleware";
 import { inventoryRoutes } from "./routes/inventory";
+import { mealPlanRoutes } from "./routes/meal-plan";
 import { suggestRecipes } from "./routes/suggest-recipes";
 import { userRoutes } from "./routes/user";
 
@@ -20,6 +21,7 @@ const app = new Elysia()
 	.use(openapi())
 	.use(userRoutes)
 	.use(inventoryRoutes)
+	.use(mealPlanRoutes)
 	.use(suggestRecipes)
 	.listen({
 		port: 3000,
