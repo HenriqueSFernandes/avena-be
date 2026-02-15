@@ -23,6 +23,7 @@ interface UserProfile {
 	age: number;
 	activityLevel: number;
 	dietaryRestrictions?: string[]; // e.g., ['vegan', 'gluten-free', 'no-pork']
+
 }
 
 export type Inventory = Ingredient[];
@@ -75,13 +76,53 @@ export function calculateCaloricNeeds(profile: UserProfile): number {
 	return bmr * activityLevel;
 }
 
-export function suggestCalorieDistribution(totalCalories: number) {
-	return {
-		Breakfast: totalCalories * 0.25,
-		Lunch: totalCalories * 0.35,
-		Snacks: totalCalories * 0.1,
-		Dinner: totalCalories * 0.3,
-	};
+export function suggestCalorieDistribution(totalCalories: number, meals: string[]): Record<string, number> {
+	const BREAKFAST_RATIO = 0.15;
+  const MORNING_SNACK_RATIO = 0.05;
+  const BRUNCH_RATIO = 0.1;
+	const LUNCH_RATIO = 0.25;
+	const AFTERNOON_SNACK_RATIO = 0.1;
+	const DINNER_RATIO = 0.25;
+  const MIDNIGHT_SNACK_RATIO = 0.1;
+
+  const distribution: Record<string, number> = {};
+
+  let totalRatio = 0;
+  if (meals.includes("breakfast")) {
+    distribution["Breakfast"] = BREAKFAST_RATIO;
+    totalRatio += BREAKFAST_RATIO;
+  }
+  if (meals.includes("morning snack")) {
+    distribution["Morning Snack"] = MORNING_SNACK_RATIO;
+    totalRatio += MORNING_SNACK_RATIO;
+  }
+  if (meals.includes("brunch")) {
+    distribution["Brunch"] = BRUNCH_RATIO;
+    totalRatio += BRUNCH_RATIO;
+  }
+  if (meals.includes("lunch")) {
+    distribution["Lunch"] = LUNCH_RATIO;
+    totalRatio += LUNCH_RATIO;
+  }
+  if (meals.includes("afternoon snack")) {
+    distribution["Afternoon Snack"] = AFTERNOON_SNACK_RATIO;
+    totalRatio += AFTERNOON_SNACK_RATIO;
+  }
+  if (meals.includes("dinner")) {
+    distribution["Dinner"] = DINNER_RATIO;
+    totalRatio += DINNER_RATIO;
+  }
+  if (meals.includes("midnight snack")) {
+    distribution["Midnight Snack"] = MIDNIGHT_SNACK_RATIO;
+    totalRatio += MIDNIGHT_SNACK_RATIO;
+  }
+
+  // Apply calories
+  for (const meal in distribution) {
+    distribution[meal] = (distribution[meal] / totalRatio) * totalCalories;
+  }
+
+	return distribution;
 }
 
 function inventoryCoverageScore(
