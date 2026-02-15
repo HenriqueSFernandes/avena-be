@@ -17,12 +17,13 @@ const MEAL_TYPE_TO_CATEGORIES: Record<string, string[]> = {
 };
 
 interface UserProfile {
-	male: boolean;
+	gender: "male" | "female" | "other";
 	height: number; // cm
 	weight: number; // kg
 	age: number;
 	activityLevel: number;
 	dietaryRestrictions?: string[]; // e.g., ['vegan', 'gluten-free', 'no-pork']
+	healthGoal?: string; // e.g., 'lose weight', 'stay fit', 'build muscle', 'eat healthier'
 }
 
 export type Inventory = Ingredient[];
@@ -62,26 +63,72 @@ interface SelectedRecipe extends Recipe {
 }
 
 export function calculateCaloricNeeds(profile: UserProfile): number {
-	const { male, height, weight, age, activityLevel } = profile;
+	const { gender, height, weight, age, activityLevel } = profile;
 
 	// Mifflin–St Jeor equation for BMR
-	let bmr: number;
-	if (male) {
-		bmr = 10 * weight + 6.25 * height - 5 * age + 5;
-	} else {
-		bmr = 10 * weight + 6.25 * height - 5 * age - 161;
+	const genderOffset = gender === "male" ? 5 : gender === "female" ? -161 : -78;
+	const bmr = 10 * weight + 6.25 * height - 5 * age + genderOffset;
+
+	let goalOffset = 0; // This can be adjusted based on user's health goal (e.g., -500 for weight loss)
+	if (profile.healthGoal === "lose weight") {
+		goalOffset = -500;
+	} else if (profile.healthGoal === "build muscle") {
+		goalOffset = 300;
 	}
 
-	return bmr * activityLevel;
+	return bmr * activityLevel + goalOffset;
 }
 
-export function suggestCalorieDistribution(totalCalories: number) {
-	return {
-		Breakfast: totalCalories * 0.25,
-		Lunch: totalCalories * 0.35,
-		Snacks: totalCalories * 0.1,
-		Dinner: totalCalories * 0.3,
-	};
+export function suggestCalorieDistribution(
+	totalCalories: number,
+	meals: string[],
+): Record<string, number> {
+	const BREAKFAST_RATIO = 0.15;
+	const MORNING_SNACK_RATIO = 0.05;
+	const BRUNCH_RATIO = 0.1;
+	const LUNCH_RATIO = 0.25;
+	const AFTERNOON_SNACK_RATIO = 0.1;
+	const DINNER_RATIO = 0.25;
+	const MIDNIGHT_SNACK_RATIO = 0.1;
+
+	const distribution: Record<string, number> = {};
+
+	let totalRatio = 0;
+	if (meals.includes("breakfast")) {
+		distribution["Breakfast"] = BREAKFAST_RATIO;
+		totalRatio += BREAKFAST_RATIO;
+	}
+	if (meals.includes("morning snack")) {
+		distribution["Morning Snack"] = MORNING_SNACK_RATIO;
+		totalRatio += MORNING_SNACK_RATIO;
+	}
+	if (meals.includes("brunch")) {
+		distribution["Brunch"] = BRUNCH_RATIO;
+		totalRatio += BRUNCH_RATIO;
+	}
+	if (meals.includes("lunch")) {
+		distribution["Lunch"] = LUNCH_RATIO;
+		totalRatio += LUNCH_RATIO;
+	}
+	if (meals.includes("afternoon snack")) {
+		distribution["Afternoon Snack"] = AFTERNOON_SNACK_RATIO;
+		totalRatio += AFTERNOON_SNACK_RATIO;
+	}
+	if (meals.includes("dinner")) {
+		distribution["Dinner"] = DINNER_RATIO;
+		totalRatio += DINNER_RATIO;
+	}
+	if (meals.includes("midnight snack")) {
+		distribution["Midnight Snack"] = MIDNIGHT_SNACK_RATIO;
+		totalRatio += MIDNIGHT_SNACK_RATIO;
+	}
+
+	// Apply calories
+	for (const meal in distribution) {
+		distribution[meal] = (distribution[meal] / totalRatio) * totalCalories;
+	}
+
+	return distribution;
 }
 
 function inventoryCoverageScore(

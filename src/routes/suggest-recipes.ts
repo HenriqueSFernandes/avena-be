@@ -46,6 +46,7 @@ export const suggestRecipes = new Elysia({ prefix: "/api/suggest-recipes" })
 						weight: user.weight,
 						age: user.age,
 						activityLevel: user.activityLevel,
+						meals: user.meals,
 						dietaryRestrictions: user.dietaryRestrictions,
 					})
 					.from(user)
@@ -58,21 +59,23 @@ export const suggestRecipes = new Elysia({ prefix: "/api/suggest-recipes" })
 					!userData.height ||
 					!userData.weight ||
 					!userData.age ||
-					!userData.activityLevel
+					!userData.activityLevel ||
+					!userData.meals
 				) {
 					return {
 						success: false,
 						error:
-							"Incomplete user profile. Please update your profile with gender, height, weight, age, and activity level.",
+							"Incomplete user profile. Please update your profile with gender, height, weight, age, activity level, and meals.",
 					};
 				}
 
 				const userProfile = {
-					male: userData.gender === "male",
+					gender: userData.gender,
 					height: userData.height,
 					weight: userData.weight,
 					age: userData.age,
 					activityLevel: toNumberActivityLevel(userData.activityLevel),
+					meals: userData.meals,
 					dietaryRestrictions: userData.dietaryRestrictions ?? [],
 				};
 
@@ -97,7 +100,10 @@ export const suggestRecipes = new Elysia({ prefix: "/api/suggest-recipes" })
 				const totalCalories = calculateCaloricNeeds(userProfile);
 
 				// Get calorie distribution across meals
-				const calorieDistribution = suggestCalorieDistribution(totalCalories);
+				const calorieDistribution = suggestCalorieDistribution(
+					totalCalories,
+					userProfile.meals,
+				);
 
 				// Plan daily meals
 				const mealPlan = await planDailyMeals(
