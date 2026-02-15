@@ -100,7 +100,10 @@ export const suggestRecipes = new Elysia({ prefix: "/api/suggest-recipes" })
 				const totalCalories = calculateCaloricNeeds(userProfile);
 
 				// Get calorie distribution across meals
-				const calorieDistribution = suggestCalorieDistribution(totalCalories, userProfile.meals);
+				const calorieDistribution = suggestCalorieDistribution(
+					totalCalories,
+					userProfile.meals,
+				);
 
 				// Plan daily meals
 				const mealPlan = await planDailyMeals(
