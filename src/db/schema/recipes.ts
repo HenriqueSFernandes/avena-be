@@ -1,11 +1,4 @@
-import { relations } from "drizzle-orm";
-import {
-	integer,
-	pgTable,
-	primaryKey,
-	serial,
-	text,
-} from "drizzle-orm/pg-core";
+import { integer, pgTable, text } from "drizzle-orm/pg-core";
 
 export const recipes = pgTable("recipes", {
 	id: text("id").primaryKey(),
@@ -27,4 +20,3 @@ export const recipes = pgTable("recipes", {
 	chefNotes: text("chef_notes"),
 	culturalContext: text("cultural_context"),
 });
-

@@ -1,6 +1,6 @@
 import "dotenv/config";
 import { cors } from "@elysiajs/cors";
-import { openapi } from '@elysiajs/openapi'
+import { openapi } from "@elysiajs/openapi";
 import { Elysia } from "elysia";
 import { betterAuth } from "./lib/auth-middleware";
 import { inventoryRoutes } from "./routes/inventory";

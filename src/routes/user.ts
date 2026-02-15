@@ -1,9 +1,9 @@
-import { Elysia, t } from "elysia";
-import { db } from "../lib/db";
-import { user } from "../db/schema/auth";
 import { eq } from "drizzle-orm";
-import { calculateTMB } from "../lib/tmb";
+import { Elysia, t } from "elysia";
+import { user } from "../db/schema/auth";
 import { betterAuth } from "../lib/auth-middleware";
+import { db } from "../lib/db";
+import { calculateTMB } from "../lib/tmb";
 
 const genderEnum = t.Union([
 	t.Literal("male"),
