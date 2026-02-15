@@ -70,7 +70,7 @@ export const suggestRecipes = new Elysia({ prefix: "/api/suggest-recipes" })
 				}
 
 				const userProfile = {
-					male: userData.gender === "male",
+					gender: userData.gender,
 					height: userData.height,
 					weight: userData.weight,
 					age: userData.age,

@@ -17,13 +17,13 @@ const MEAL_TYPE_TO_CATEGORIES: Record<string, string[]> = {
 };
 
 interface UserProfile {
-	male: boolean;
+	gender: "male" | "female" | "other";
 	height: number; // cm
 	weight: number; // kg
 	age: number;
 	activityLevel: number;
 	dietaryRestrictions?: string[]; // e.g., ['vegan', 'gluten-free', 'no-pork']
-
+  healthGoal?: string; // e.g., 'lose weight', 'stay fit', 'build muscle', 'eat healthier'
 }
 
 export type Inventory = Ingredient[];
@@ -63,17 +63,20 @@ interface SelectedRecipe extends Recipe {
 }
 
 export function calculateCaloricNeeds(profile: UserProfile): number {
-	const { male, height, weight, age, activityLevel } = profile;
+	const { gender, height, weight, age, activityLevel } = profile;
 
 	// Mifflin–St Jeor equation for BMR
-	let bmr: number;
-	if (male) {
-		bmr = 10 * weight + 6.25 * height - 5 * age + 5;
-	} else {
-		bmr = 10 * weight + 6.25 * height - 5 * age - 161;
-	}
+  const genderOffset = gender === "male" ? 5 : gender === "female" ? -161 : -78;
+  const bmr = 10 * weight + 6.25 * height - 5 * age + genderOffset;
 
-	return bmr * activityLevel;
+  let goalOffset = 0; // This can be adjusted based on user's health goal (e.g., -500 for weight loss)
+  if (profile.healthGoal === "lose weight") {
+    goalOffset = -500;
+  } else if (profile.healthGoal === "build muscle") {
+    goalOffset = 300;
+  }
+
+	return bmr * activityLevel + goalOffset;
 }
 
 export function suggestCalorieDistribution(totalCalories: number, meals: string[]): Record<string, number> {
