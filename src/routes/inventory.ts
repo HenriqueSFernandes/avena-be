@@ -9,13 +9,13 @@ const unitEnum = t.Union([t.Literal("kg"), t.Literal("l")]);
 
 const addItemSchema = t.Object({
 	name: t.String({ minLength: 1 }),
-	quantity: t.Number({ minimum: 0, exclusiveMinimum: true }),
+	quantity: t.Number({ minimum: 0.01 }),
 	unit: t.Optional(unitEnum),
 });
 
 const updateItemSchema = t.Object({
 	name: t.Optional(t.String({ minLength: 1 })),
-	quantity: t.Optional(t.Number({ minimum: 0, exclusiveMinimum: true })),
+	quantity: t.Optional(t.Number({ minimum: 0.01 })),
 	unit: t.Optional(unitEnum),
 });
 
