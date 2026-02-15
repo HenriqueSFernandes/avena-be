@@ -17,7 +17,7 @@ const mealTypeValidator = t.Union([
 
 const saveMealSchema = t.Object({
 	weekStartDate: t.String({ format: "date" }),
-	dayOfWeek: t.Integer({ minimum: 1, maximum: 7 }),
+	dayOfWeek: t.Number({ minimum: 1, maximum: 7 }),
 	mealType: mealTypeValidator,
 	recipeId: t.String({ minLength: 1 }),
 });
