@@ -25,9 +25,10 @@ export const healthGoalEnum = pgEnum("health_goal", [
 ]);
 export const mealEnum = pgEnum("meal", [
 	"breakfast",
+	"morning snack",
 	"brunch",
 	"lunch",
-	"afternoon",
+	"afternoon snack",
 	"dinner",
 	"midnight snack",
 ]);

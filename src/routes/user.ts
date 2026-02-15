@@ -28,9 +28,10 @@ const healthGoalEnum = t.Union([
 
 const mealEnum = t.Union([
 	t.Literal("breakfast"),
+	t.Literal("morning snack"),
 	t.Literal("brunch"),
 	t.Literal("lunch"),
-	t.Literal("afternoon"),
+	t.Literal("afternoon snack"),
 	t.Literal("dinner"),
 	t.Literal("midnight snack"),
 ]);
