@@ -95,7 +95,7 @@ export function suggestCalorieDistribution(
 
 	let totalRatio = 0;
 	if (meals.includes("breakfast")) {
-		distribution["Breakfast"] = BREAKFAST_RATIO;
+		distribution.Breakfast = BREAKFAST_RATIO;
 		totalRatio += BREAKFAST_RATIO;
 	}
 	if (meals.includes("morning snack")) {
@@ -103,11 +103,11 @@ export function suggestCalorieDistribution(
 		totalRatio += MORNING_SNACK_RATIO;
 	}
 	if (meals.includes("brunch")) {
-		distribution["Brunch"] = BRUNCH_RATIO;
+		distribution.Brunch = BRUNCH_RATIO;
 		totalRatio += BRUNCH_RATIO;
 	}
 	if (meals.includes("lunch")) {
-		distribution["Lunch"] = LUNCH_RATIO;
+		distribution.Lunch = LUNCH_RATIO;
 		totalRatio += LUNCH_RATIO;
 	}
 	if (meals.includes("afternoon snack")) {
@@ -115,7 +115,7 @@ export function suggestCalorieDistribution(
 		totalRatio += AFTERNOON_SNACK_RATIO;
 	}
 	if (meals.includes("dinner")) {
-		distribution["Dinner"] = DINNER_RATIO;
+		distribution.Dinner = DINNER_RATIO;
 		totalRatio += DINNER_RATIO;
 	}
 	if (meals.includes("midnight snack")) {
@@ -493,7 +493,7 @@ export async function planDailyMeals(
 	const allSelectedMeals: SelectedRecipe[] = [];
 	let dailyConsumedCalories = 0;
 	let dailyRemainingCalories = totalCalories;
-	let currentInventory = [ ...initialInventory ];
+	let currentInventory = [...initialInventory];
 
 	for (const mealType of mealOrder) {
 		// Calculate target calories based on original distribution
